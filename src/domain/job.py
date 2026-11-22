@@ -12,7 +12,8 @@ class Job:
 
     `before` se aplica, en orden, a los bytes leídos (antes del parser) y `after` al
     DataFrame (antes del serializer). `schedule` es cuándo se ejecuta en modo servidor;
-    sin él, el job solo se ejecuta cuando se pide.
+    sin él, el job solo se ejecuta cuando se pide. Un job con `enabled` a False no se sirve
+    en modo servidor (salvo que se pida por su nombre), pero se puede ejecutar a mano.
     """
 
     name: str
@@ -21,3 +22,4 @@ class Job:
     before: tuple[Transformation, ...] = ()
     after: tuple[Transformation, ...] = ()
     schedule: Schedule | None = None
+    enabled: bool = True

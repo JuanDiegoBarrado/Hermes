@@ -5,7 +5,7 @@ from typing import Any
 
 import yaml
 
-from application.ports.repositories.job_repository import JobRepository
+from application.ports.repositories.job_repository import InvalidJobError, JobRepository
 from domain.destination import Destination
 from domain.job import Job
 from domain.location import Location
@@ -41,6 +41,7 @@ class YamlJobRepository(JobRepository):
         schedule:                # opcional; cuándo se ejecuta en modo servidor
           cron: "0 6 * * *"
           timezone: Europe/Madrid  # opcional; por defecto, la hora local
+        enabled: false           # opcional (por defecto, true); false: el modo servidor no lo sirve
 
     En cualquier texto del YAML, `${NOMBRE}` se sustituye al leer el job por esa variable de
     entorno (p. ej. del .env), para que las credenciales no estén en el fichero del job. Si la
@@ -57,10 +58,13 @@ class YamlJobRepository(JobRepository):
             return None
         return self._read(path)
 
-    def find_all(self) -> list[Job]:
+    def find_names(self) -> list[str]:
         if not self._directory.is_dir():
             return []
-        return [self._read(path) for path in sorted(self._directory.glob("*.yaml"))]
+        return [path.stem for path in sorted(self._directory.glob("*.yaml"))]
+
+    def find_all(self) -> list[Job]:
+        return [self._read(self._path(name)) for name in self.find_names()]
 
     def save(self, job: Job) -> None:
         self._directory.mkdir(parents=True, exist_ok=True)
@@ -71,6 +75,8 @@ class YamlJobRepository(JobRepository):
         data["destination"] = _endpoint_to_dict(job.destination)
         if job.schedule is not None:
             data["schedule"] = _schedule_to_dict(job.schedule)
+        if not job.enabled:
+            data["enabled"] = False
         text = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
         self._path(job.name).write_text(text, encoding="utf-8")
 
@@ -81,7 +87,12 @@ class YamlJobRepository(JobRepository):
         return self._directory / f"{name}.yaml"
 
     def _read(self, path: Path) -> Job:
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError as exc:
+            raise InvalidJobError(f"Job no válido en {path}: {exc}") from exc
+        # Se mira antes de validar el resto, para saber si está desactivado aunque no sea válido
+        enabled = data.get("enabled", True) if isinstance(data, dict) else True
         try:
             data = _expand_variables(data)
             transforms = data.get("transforms") or {}
@@ -92,9 +103,10 @@ class YamlJobRepository(JobRepository):
                 before=_transformations_from_list(transforms.get("before") or []),
                 after=_transformations_from_list(transforms.get("after") or []),
                 schedule=_schedule_from_dict(data.get("schedule")),
+                enabled=_enabled_from_value(enabled),
             )
         except (AttributeError, KeyError, TypeError, ValueError) as exc:
-            raise ValueError(f"Job no válido en {path}: {exc!r}") from exc
+            raise InvalidJobError(f"Job no válido en {path}: {exc!r}", enabled=enabled is not False) from exc
 
 
 def _expand_variables(value: Any) -> Any:
@@ -138,6 +150,12 @@ def _schedule_from_dict(data: dict[str, Any] | None) -> Schedule | None:
         return None
     timezone = data.get("timezone")
     return Schedule(cron=str(data["cron"]), timezone=None if timezone is None else str(timezone))
+
+
+def _enabled_from_value(value: Any) -> bool:
+    if not isinstance(value, bool):
+        raise ValueError(f"'enabled' debe ser true o false, no {value!r}")
+    return value
 
 
 def _schedule_to_dict(schedule: Schedule) -> dict[str, Any]:

@@ -1,7 +1,7 @@
 """Punto de arranque de Hermes: monta las piezas concretas y lanza la línea de comandos.
 
     python src/main.py run <job>
-    python src/main.py serve
+    python src/main.py serve [job ...]
 
 Los jobs se leen de jobs/ y las transformaciones de transforms/ (en la raíz de Hermes);
 las rutas relativas de los jobs (p. ej. output/...) son relativas a la carpeta desde la

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from application.ports.notifier import Notifier
-from application.ports.repositories.job_repository import JobRepository
+from application.ports.repositories.job_repository import InvalidJobError, JobRepository
 from application.services.run_job_service import RunJobService
 from domain.schedule import Schedule
 
@@ -19,6 +19,10 @@ class _Planned:
 
 class RunDueJobsService:
     """Caso de uso: una pasada del modo servidor. Ejecuta los jobs con schedule a los que les toca.
+
+    Sirve los jobs que se le piden por nombre o, si no se le pide ninguno, todos los que tienen
+    `enabled`. Un job desactivado que no se puede leer (una variable de entorno que falta...) se
+    ignora con un warning; uno activado (o pedido por su nombre) hace fallar la pasada.
 
     Guarda en memoria el próximo disparo de cada job. Se calcula la primera vez que se ve el
     job (al arrancar, o cuando se añade o le cambia el schedule), así que los jobs se releen
@@ -41,21 +45,34 @@ class RunDueJobsService:
         self._notifier = notifier
         self._planned: dict[str, _Planned] = {}
 
-    def execute(self, now: datetime) -> datetime | None:
-        """Ejecuta, uno tras otro, los jobs pendientes en `now` (con zona horaria). Devuelve el
-        próximo disparo de todos los jobs, o None si no hay ninguno con schedule."""
-        self._refresh(now)
+    def execute(self, now: datetime, names: list[str] | None = None) -> datetime | None:
+        """Ejecuta, uno tras otro, los jobs pendientes en `now` (con zona horaria): los de
+        `names`, aunque no tengan `enabled`, o si es None los que lo tienen. Devuelve el próximo
+        disparo de todos ellos, o None si no hay ninguno con schedule."""
+        self._refresh(now, names)
         due = sorted((p.next_run, name) for name, p in self._planned.items() if p.next_run <= now)
         for _, name in due:
             self._run(name, now)
         return min((p.next_run for p in self._planned.values()), default=None)
 
-    def _refresh(self, now: datetime) -> None:
+    def _refresh(self, now: datetime, names: list[str] | None) -> None:
         """Sincroniza la planificación con los jobs que hay ahora."""
-        schedules = {job.name: job.schedule for job in self._jobs.find_all() if job.schedule is not None}
+        schedules = {}
+        for name in self._jobs.find_names() if names is None else names:
+            try:
+                job = self._jobs.find(name)
+            except InvalidJobError as exc:
+                if names is not None or exc.enabled:
+                    raise
+                logger.warning("Se ignora el job desactivado '%s', que no se puede leer: %s", name, exc)
+                continue
+            if job is None:
+                logger.warning("No existe el job '%s'", name)
+            elif job.schedule is not None and (names is not None or job.enabled):
+                schedules[name] = job.schedule
         for name in self._planned.keys() - schedules.keys():
             del self._planned[name]
-            logger.info("'%s' ya no tiene schedule: deja de planificarse", name)
+            logger.info("'%s' deja de planificarse (ya no tiene schedule o está desactivado)", name)
         for name, schedule in schedules.items():
             planned = self._planned.get(name)
             if planned is None or planned.schedule != schedule:
