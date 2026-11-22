@@ -36,7 +36,7 @@ class YamlJobRepository(JobRepository):
         destination:
           location:
             system: filesystem
-            path: output/ventas.csv
+            path: output/ventas.csv  # admite {name} y {timestamp} (ver RunJobService)
           format: csv
         schedule:                # opcional; cuándo se ejecuta en modo servidor
           cron: "0 6 * * *"

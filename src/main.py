@@ -31,12 +31,14 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from application.factories.lister_factory import ListerFactory
 from application.factories.parser_factory import ParserFactory
 from application.factories.reader_factory import ReaderFactory
 from application.factories.serializer_factory import SerializerFactory
 from application.factories.writer_factory import WriterFactory
 from application.services.run_due_jobs_service import RunDueJobsService
 from application.services.run_job_service import RunJobService
+from infrastructure.adapters.listers.local_filesystem_lister import LocalFilesystemLister
 from infrastructure.adapters.parsers.csv_parser import CsvParser
 from infrastructure.adapters.parsers.json_parser import JsonParser
 from infrastructure.adapters.parsers.xlsx_parser import XlsxParser
@@ -95,6 +97,7 @@ def build_run_job_service(jobs: YamlJobRepository) -> RunJobService:
     return RunJobService(
         jobs=jobs,
         transformations=PythonTransformationRepository(ROOT / "transforms"),
+        listers=ListerFactory({"filesystem": LocalFilesystemLister}),
         readers=ReaderFactory(
             {"filesystem": FilesystemReader, "http": HttpReader, "s3": S3Reader, "garmin": GarminReader}
         ),

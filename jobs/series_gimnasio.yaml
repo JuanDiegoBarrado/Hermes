@@ -1,7 +1,7 @@
 origin:
   location:
     system: filesystem
-    path: input/gimnasio/gimnasio.xlsx
+    pattern: input/gimnasio/*.xlsx
   format: xlsx
 transforms:
   after:
