@@ -19,8 +19,10 @@ Configuración en el .env de la raíz de Hermes (una variable de entorno ya defi
     SMTP_PASSWORD           en Gmail: smtp.gmail.com, 587 y una contraseña de aplicación (no la de la cuenta)
 
     Las que usen los jobs con ${NOMBRE} (ver YamlJobRepository). Para entregar a Omnis:
-    OMNIS_STORAGE_URL       el storage de Omnis, sin / al final (p. ej. http://localhost:9000)
+    OMNIS_STORAGE_DATA_DIR  la URL del storage de Omnis, sin / al final (p. ej. http://localhost:9000)
     OMNIS_STORAGE_AUTH      base64 de "<usuario>:<contraseña>", con un usuario de STORAGE_USERS
+    OMNIS_STORAGE_TEMP_DIR  la carpeta temp/ del storage de Omnis, sin / al final, de donde se leen
+                            los Excels subidos (p. ej. ../Omnis/omnis-storage/data/temp)
 """
 
 import logging

@@ -1,7 +1,7 @@
 origin:
   location:
     system: filesystem
-    pattern: input/gimnasio/*.xlsx
+    pattern: ${OMNIS_STORAGE_TEMP_DIR}/series_gimnasio/*.xlsx
   format: xlsx
 transforms:
   after:
@@ -9,7 +9,7 @@ transforms:
 destination:
   location:
     system: http
-    url: ${OMNIS_STORAGE_URL}/raw/series_gimnasio
+    url: ${OMNIS_STORAGE_DATA_DIR}/raw/series_gimnasio
     headers:
       Authorization: Basic ${OMNIS_STORAGE_AUTH}
   format: csv
