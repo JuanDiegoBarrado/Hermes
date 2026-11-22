@@ -10,8 +10,7 @@ destination:
   location:
     system: http
     url: ${OMNIS_STORAGE_DATA_DIR}/raw/series_gimnasio
-    headers:
-      Authorization: Basic ${OMNIS_STORAGE_AUTH}
+    basic_auth: ${OMNIS_STORAGE_AUTH}
   format: csv
 schedule:
   cron: "0 6 * * *"

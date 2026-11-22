@@ -20,7 +20,7 @@ Configuración en el .env de la raíz de Hermes (una variable de entorno ya defi
 
     Las que usen los jobs con ${NOMBRE} (ver YamlJobRepository). Para entregar a Omnis:
     OMNIS_STORAGE_DATA_DIR  la URL del storage de Omnis, sin / al final (p. ej. http://localhost:9000)
-    OMNIS_STORAGE_AUTH      base64 de "<usuario>:<contraseña>", con un usuario de STORAGE_USERS
+    OMNIS_STORAGE_AUTH      "<usuario>:<contraseña>", uno de los de STORAGE_USERS (p. ej. producer:change-me)
     OMNIS_STORAGE_TEMP_DIR  la carpeta temp/ del storage de Omnis, sin / al final, de donde se leen
                             los Excels subidos (p. ej. ../Omnis/omnis-storage/data/temp)
 """
