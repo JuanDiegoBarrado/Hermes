@@ -1,0 +1,19 @@
+origin:
+    location:
+        system: garmin
+        dataset: activities
+        date: yesterday
+        days: 1
+    format: json
+transforms:
+    after:
+        - name: garmin.activities
+      # options:
+      #   activity_types: [running, trail_running, treadmill_running]
+destination:
+    location:
+        system: filesystem
+        path: output/garmin/garmin_activities.csv
+    format: csv
+schedule:
+    cron: "0 6 * * *"

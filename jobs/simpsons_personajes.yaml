@@ -1,0 +1,15 @@
+origin:
+  location:
+    system: http
+    url: https://thesimpsonsapi.com/api/characters/1
+  format: json
+transforms:
+  after:
+    - name: simpsons.select_columns
+      options:
+        columns: [name, age, occupation]
+destination:
+  location:
+    system: filesystem
+    path: output/simpsons_personajes.csv
+  format: csv

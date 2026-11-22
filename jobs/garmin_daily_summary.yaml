@@ -1,0 +1,17 @@
+origin:
+  location:
+    system: garmin
+    dataset: daily_summary
+    date: yesterday
+    days: 1
+  format: json
+transforms:
+  after:
+    - name: garmin.daily_summary
+destination:
+  location:
+    system: filesystem
+    path: output/garmin/garmin_daily_summary.csv
+  format: csv
+schedule:
+  cron: "0 6 * * *"
