@@ -10,8 +10,10 @@ transforms:
     - name: garmin.daily_summary
 destination:
   location:
-    system: filesystem
-    path: output/garmin/garmin_daily_summary.csv
+    system: http
+    url: ${OMNIS_STORAGE_DATA_DIR}/raw/daily_summary
+    headers:
+      Authorization: Basic ${OMNIS_STORAGE_AUTH}
   format: csv
 schedule:
   cron: "0 6 * * *"
