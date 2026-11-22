@@ -1,7 +1,9 @@
 import logging
+import traceback
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from application.ports.notifier import Notifier
 from application.ports.repositories.job_repository import JobRepository
 from application.services.run_job_service import RunJobService
 from domain.schedule import Schedule
@@ -26,12 +28,17 @@ class RunDueJobsService:
     job tardó más que su intervalo), se ejecuta solo el último y los anteriores se registran
     como perdidos. Si el que se ejecuta lleva más de `late_after` de retraso, también se avisa.
     Lo que ocurre con el servidor parado no se sabe ni se registra.
+
+    Si se le pasa un `notifier`, se le avisa de cada job que falla.
     """
 
-    def __init__(self, jobs: JobRepository, run_job: RunJobService, late_after: timedelta) -> None:
+    def __init__(
+        self, jobs: JobRepository, run_job: RunJobService, late_after: timedelta, notifier: Notifier | None = None
+    ) -> None:
         self._jobs = jobs
         self._run_job = run_job
         self._late_after = late_after
+        self._notifier = notifier
         self._planned: dict[str, _Planned] = {}
 
     def execute(self, now: datetime) -> datetime | None:
@@ -82,5 +89,14 @@ class RunDueJobsService:
             self._run_job.execute(name)
         except Exception:  # un job roto no para el servidor
             logger.exception("Falló el job '%s'", name)
+            self._notify_failure(name, scheduled, traceback.format_exc())
         else:
             logger.info("Job '%s' ejecutado. Próximo disparo: %s", name, planned.next_run)
+
+    def _notify_failure(self, name: str, scheduled: datetime, error: str) -> None:
+        if self._notifier is None:
+            return
+        try:
+            self._notifier.notify_failure(name, scheduled, error)
+        except Exception:  # si el aviso falla, el servidor sigue
+            logger.exception("No se pudo avisar del fallo del job '%s'", name)

@@ -9,8 +9,17 @@ que se ejecuta.
 
 Configuración en el .env de la raíz de Hermes (una variable de entorno ya definida manda):
     HERMES_WAKEUP_SECONDS   en modo servidor, cada cuánto se despierta como mucho (por defecto: 900)
+
+    Correo de aviso cuando falla un job en modo servidor. Si falta alguna (salvo SMTP_PORT),
+    no se envía ningún correo:
+    ALERT_EMAIL             a quién se avisa
+    SMTP_HOST               servidor SMTP por el que se envía, como SMTP_USER, que es también el remitente
+    SMTP_PORT               465 usa TLS, cualquier otro STARTTLS (por defecto: 587)
+    SMTP_USER
+    SMTP_PASSWORD           en Gmail: smtp.gmail.com, 587 y una contraseña de aplicación (no la de la cuenta)
 """
 
+import logging
 import os
 import sys
 from datetime import timedelta
@@ -27,6 +36,7 @@ from application.services.run_job_service import RunJobService
 from infrastructure.adapters.parsers.csv_parser import CsvParser
 from infrastructure.adapters.parsers.json_parser import JsonParser
 from infrastructure.adapters.parsers.yaml_parser import YamlParser
+from infrastructure.adapters.notifiers.email_notifier import EmailNotifier
 from infrastructure.adapters.readers.filesystem_reader import FilesystemReader
 from infrastructure.adapters.readers.garmin_reader import GarminReader
 from infrastructure.adapters.readers.http_reader import HttpReader
@@ -45,6 +55,9 @@ from infrastructure.cli.app import main
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# Lo que necesita el correo de aviso. SMTP_PORT es opcional (587 por defecto)
+EMAIL_VARIABLES = ("ALERT_EMAIL", "SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD")
+
 
 def wakeup_seconds() -> float:
     value = os.getenv("HERMES_WAKEUP_SECONDS", "900")
@@ -55,6 +68,22 @@ def wakeup_seconds() -> float:
     if seconds <= 0:
         raise ValueError(f"HERMES_WAKEUP_SECONDS debe ser un número de segundos mayor que 0, no '{value}'")
     return seconds
+
+
+def build_notifier() -> EmailNotifier | None:
+    """El que avisa por correo, o None si no están todas las EMAIL_VARIABLES."""
+    missing = [name for name in EMAIL_VARIABLES if not os.getenv(name)]
+    if missing:
+        if len(missing) < len(EMAIL_VARIABLES):
+            logging.getLogger(__name__).warning("Correos de aviso desactivados: faltan %s", missing)
+        return None
+    return EmailNotifier(
+        host=os.environ["SMTP_HOST"],
+        port=int(os.getenv("SMTP_PORT") or 587),
+        user=os.environ["SMTP_USER"],
+        password=os.environ["SMTP_PASSWORD"],
+        to=os.environ["ALERT_EMAIL"],
+    )
 
 
 def build_run_job_service(jobs: YamlJobRepository) -> RunJobService:
@@ -77,5 +106,5 @@ if __name__ == "__main__":
     run_job = build_run_job_service(jobs)
     # Retraso a partir del cual se avisa: el bucle despierta a la hora de cada disparo, así que
     # pasarse de su tope de espera solo ocurre si el equipo estuvo suspendido o muy ocupado.
-    run_due_jobs = RunDueJobsService(jobs, run_job, late_after=timedelta(seconds=wakeup))
+    run_due_jobs = RunDueJobsService(jobs, run_job, late_after=timedelta(seconds=wakeup), notifier=build_notifier())
     sys.exit(main(sys.argv[1:], run_job, run_due_jobs, wakeup))
