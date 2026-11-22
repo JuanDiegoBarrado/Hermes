@@ -35,6 +35,7 @@ from application.services.run_due_jobs_service import RunDueJobsService
 from application.services.run_job_service import RunJobService
 from infrastructure.adapters.parsers.csv_parser import CsvParser
 from infrastructure.adapters.parsers.json_parser import JsonParser
+from infrastructure.adapters.parsers.xlsx_parser import XlsxParser
 from infrastructure.adapters.parsers.yaml_parser import YamlParser
 from infrastructure.adapters.notifiers.email_notifier import EmailNotifier
 from infrastructure.adapters.readers.filesystem_reader import FilesystemReader
@@ -93,7 +94,7 @@ def build_run_job_service(jobs: YamlJobRepository) -> RunJobService:
         readers=ReaderFactory(
             {"filesystem": FilesystemReader, "http": HttpReader, "s3": S3Reader, "garmin": GarminReader}
         ),
-        parsers=ParserFactory({"csv": CsvParser, "json": JsonParser, "yaml": YamlParser}),
+        parsers=ParserFactory({"csv": CsvParser, "json": JsonParser, "yaml": YamlParser, "xlsx": XlsxParser}),
         serializers=SerializerFactory({"csv": CsvSerializer, "json": JsonSerializer, "yaml": YamlSerializer}),
         writers=WriterFactory({"filesystem": FilesystemWriter, "http": HttpWriter, "s3": S3Writer}),
     )

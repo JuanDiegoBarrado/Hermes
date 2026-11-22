@@ -1,0 +1,15 @@
+origin:
+  location:
+    system: filesystem
+    path: input/gimnasio/gimnasio.xlsx
+  format: xlsx
+transforms:
+  after:
+    - name: gimnasio.series
+destination:
+  location:
+    system: filesystem
+    path: output/gimnasio/series_gimnasio.csv
+  format: csv
+schedule:
+  cron: "0 6 * * *"
