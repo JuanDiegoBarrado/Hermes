@@ -17,6 +17,10 @@ Configuración en el .env de la raíz de Hermes (una variable de entorno ya defi
     SMTP_PORT               465 usa TLS, cualquier otro STARTTLS (por defecto: 587)
     SMTP_USER
     SMTP_PASSWORD           en Gmail: smtp.gmail.com, 587 y una contraseña de aplicación (no la de la cuenta)
+
+    Las que usen los jobs con ${NOMBRE} (ver YamlJobRepository). Para entregar a Omnis:
+    OMNIS_STORAGE_URL       el storage de Omnis, sin / al final (p. ej. http://localhost:9000)
+    OMNIS_STORAGE_AUTH      base64 de "<usuario>:<contraseña>", con un usuario de STORAGE_USERS
 """
 
 import logging

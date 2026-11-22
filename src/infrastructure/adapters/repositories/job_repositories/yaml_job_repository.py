@@ -1,3 +1,5 @@
+import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +12,8 @@ from domain.location import Location
 from domain.origin import Origin
 from domain.schedule import Schedule
 from domain.transformation import Transformation
+
+_VARIABLE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
 
 class YamlJobRepository(JobRepository):
@@ -37,6 +41,11 @@ class YamlJobRepository(JobRepository):
         schedule:                # opcional; cuándo se ejecuta en modo servidor
           cron: "0 6 * * *"
           timezone: Europe/Madrid  # opcional; por defecto, la hora local
+
+    En cualquier texto del YAML, `${NOMBRE}` se sustituye al leer el job por esa variable de
+    entorno (p. ej. del .env), para que las credenciales no estén en el fichero del job. Si la
+    variable no está definida, el job no es válido. Como la sustitución se hace al leer, `save`
+    escribe los valores ya sustituidos: guardar un job leído dejaría sus secretos en el YAML.
     """
 
     def __init__(self, directory: Path) -> None:
@@ -74,6 +83,7 @@ class YamlJobRepository(JobRepository):
     def _read(self, path: Path) -> Job:
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         try:
+            data = _expand_variables(data)
             transforms = data.get("transforms") or {}
             return Job(
                 name=path.stem,
@@ -85,6 +95,25 @@ class YamlJobRepository(JobRepository):
             )
         except (AttributeError, KeyError, TypeError, ValueError) as exc:
             raise ValueError(f"Job no válido en {path}: {exc!r}") from exc
+
+
+def _expand_variables(value: Any) -> Any:
+    """`value` con cada `${NOMBRE}` de sus textos sustituido por esa variable de entorno."""
+    if isinstance(value, str):
+        return _VARIABLE.sub(_variable_value, value)
+    if isinstance(value, dict):
+        return {key: _expand_variables(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_expand_variables(item) for item in value]
+    return value
+
+
+def _variable_value(match: re.Match[str]) -> str:
+    name = match.group(1)
+    value = os.environ.get(name)
+    if value is None:
+        raise ValueError(f"La variable de entorno '{name}' no está definida")
+    return value
 
 
 def _endpoint_from_dict(data: dict[str, Any]) -> tuple[Location, str]:

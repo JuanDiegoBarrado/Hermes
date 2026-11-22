@@ -8,8 +8,10 @@ transforms:
     - name: gimnasio.series
 destination:
   location:
-    system: filesystem
-    path: output/gimnasio/series_gimnasio.csv
+    system: http
+    url: ${OMNIS_STORAGE_URL}/raw/series_gimnasio
+    headers:
+      Authorization: Basic ${OMNIS_STORAGE_AUTH}
   format: csv
 schedule:
   cron: "0 6 * * *"
