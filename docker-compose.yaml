@@ -1,7 +1,8 @@
 # Hermes en modo servidor: docker compose up -d --build
 #
-# Antes del primer arranque, crea output/ y .garminconnect/ (con los tokens de Garmin): si no
-# existen, Docker las crea como root y Hermes no podría escribir en ellas.
+# output/ y .garminconnect/ están en el repo con un .gitkeep, así que existen al clonar: si no,
+# Docker las crearía como root y Hermes no podría escribir en ellas. Los tokens de Garmin van en
+# .garminconnect/.
 services:
   hermes:
     build: .

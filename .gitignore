@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+build/
+dist/
+
+# Datos generados en ejecución. output/ está en el repo con un .gitkeep, así que existe al clonar
+# y es de quien clona: si la creara Docker, sería de root y Hermes no podría escribir en ella
+output/*
+!output/.gitkeep
+input/
+
+# Tokens de la sesión de Garmin (montados en el contenedor), con un .gitkeep por lo mismo
+.garminconnect/*
+!.garminconnect/.gitkeep
+
+.env
